@@ -1,6 +1,8 @@
 # P5 + Tweakpane example
 
-## Installation after downloading this example
+## Installation
+
+[Download](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/ecal-mid/dynamic-display--dynamic-id/tree/main/examples/tweakpane-p5)
 
 ```bash
 npm install
