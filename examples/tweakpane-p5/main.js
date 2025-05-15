@@ -10,7 +10,7 @@ pane.title = "My poster"
 const PARAMS = {
   xPosition: 0, // %
   bgColor: '#0000ff',
-  dimensions: { x: 300, y: 500 },
+  dimensions: { x: 600, y: 1000 },
 };
 
 pane.addBinding(PARAMS, 'xPosition', {
@@ -47,13 +47,4 @@ window.setup = function () {
   p5Canvas.parent('app') // attach canvas to #app
   pixelDensity(1) // disable retina display scaling
   imageMode(CENTER)
-}
-
-window.draw = function () {
-  background(PARAMS.bgColor)
-
-  const x = PARAMS.xPosition / 100 * width
-
-  image(svg, mouseX, mouseY)
-  ellipse(x, height / 2, 200)
 }
