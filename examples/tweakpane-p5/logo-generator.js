@@ -76,11 +76,12 @@ globalThis.logoSetup = function(p) {
 }
 
 function drawHexagon(p, size) {
+    const adjustedSize = size * 1; // Ajuster la taille pour correspondre aux autres formes
     p.beginShape();
     for (let i = 0; i < 6; i++) {
-        const angle = i * 60; // Remove the 30 degree rotation to have flat faces on top/bottom
-        const x = size * p.cos(angle);
-        const y = size * p.sin(angle);
+        const angle = (i * 60 + 60) * (Math.PI / 180); // Convertir en radians et rotation de 30 degrés
+        const x = adjustedSize * Math.cos(angle);
+        const y = adjustedSize * Math.sin(angle);
         p.vertex(x, y);
     }
     p.endShape(p.CLOSE);
@@ -95,18 +96,16 @@ function drawCircle(p, size) {
     p.circle(0, 0, size * 1.9); // Back to previous size
 }
 
-globalThis.logoDraw = function(p) {
-    p.background(255);
-    
-    // Draw each letter
+// Add global function to draw logo shapes that can be used by both logo and poster
+globalThis.drawLogoShapes = function(p, x, y, scale, color, showLetters = true) {
     Object.entries(globalThis.logoParams.letters).forEach(([letter, settings]) => {
         p.push();
-        p.translate(settings.x, settings.y);
+        p.translate(x + settings.x * scale, y + settings.y * scale);
         p.rotate(settings.rotation);
-        p.scale(settings.scale);
+        p.scale(settings.scale * scale);
         
         // Draw shape
-        p.fill(globalThis.logoParams.canvas.color);
+        p.fill(color || globalThis.logoParams.canvas.color);
         p.noStroke();
         const size = 45;
         
@@ -122,13 +121,20 @@ globalThis.logoDraw = function(p) {
                 break;
         }
         
-        // Draw letter
-        p.fill(255);
-        p.textFont('States Medium');
-        p.textSize(size * 1.5);
-        p.textAlign(p.CENTER, p.CENTER);
-        p.text(letter, 0, size * 0.11);
+        // Draw letter only if showLetters is true
+        if (showLetters) {
+            p.fill(255);
+            p.textFont('States Medium');
+            p.textSize(size * 1.5);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.text(letter, 0, size * 0.11);
+        }
         
         p.pop();
     });
+}
+
+globalThis.logoDraw = function(p) {
+    p.background(255);
+    globalThis.drawLogoShapes(p, 0, 0, 1, null, true); // Show letters in the logo generator
 }

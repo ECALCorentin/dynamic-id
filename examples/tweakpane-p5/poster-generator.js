@@ -27,7 +27,7 @@ const PARAMS = {
     xPosition: 0,
     bgColor: '#3C3C17',
     dimensions: { ...FORMATS['Poster'] },
-    message: 'Titre',
+    message: 'Swiss Dance Day Retrospective',
 
     imageLayer: {
         visible: true,
@@ -59,9 +59,13 @@ const PARAMS = {
     },
 
     logo: {
+        visible: true,
         posX: 50,
         posY: 50,
-        radius: 40,
+        scale: 1,
+        rotation: 0,
+        color: '#000000',
+        opacity: 1
     },
 };
 
@@ -147,6 +151,16 @@ f2.addBinding(PARAMS.imageLayer, 'cropAmount', {
 const f0 = pane.addFolder({ title: 'Background' });
 f0.addBinding(PARAMS, 'bgColor');
 
+// Add logo controls
+const logoFolder = pane.addFolder({ title: 'Logo Shape' });
+logoFolder.addBinding(PARAMS.logo, 'visible', { label: 'Visible' });
+logoFolder.addBinding(PARAMS.logo, 'posX', { min: -500, max: 1500, label: 'Position X' });
+logoFolder.addBinding(PARAMS.logo, 'posY', { min: -500, max: 1500, label: 'Position Y' });
+logoFolder.addBinding(PARAMS.logo, 'scale', { min: 0.1, max: 10, step: 0.1, label: 'Scale' });
+logoFolder.addBinding(PARAMS.logo, 'rotation', { min: 0, max: 360, label: 'Rotation' });
+logoFolder.addBinding(PARAMS.logo, 'color', { label: 'Color' });
+logoFolder.addBinding(PARAMS.logo, 'opacity', { min: 0, max: 1, step: 0.1, label: 'Opacity' });
+
 pane.addButton({
     title: 'Save image',
 }).on('click', () => {
@@ -154,9 +168,12 @@ pane.addButton({
 });
 
 let svg;
+let statesFont;
 
 globalThis.preload = function () {
     svg = loadImage('/vite.svg');
+    // Load font
+    statesFont = loadFont('public/font/StatesWeb-RoundedMedium.otf');
     // Load the default image
     loadImage(AVAILABLE_IMAGES[PARAMS.imageLayer.selectedImage], (img) => {
         PARAMS.imageLayer.image = img;
@@ -170,6 +187,9 @@ globalThis.setup = function () {
     pixelDensity(1)
     imageMode(CENTER)
     rectMode(CENTER)
+    
+    // Store p5 instance
+    window._p5Instance = window._p5Instance || this;
 
     document.getElementById('image-loader').addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -204,6 +224,30 @@ globalThis.draw = function () {
     if (PARAMS.layer2.visible) {
         push()
         pop()
+    }
+
+    // Draw title
+    push();
+    textFont(statesFont);
+    textSize(41);
+    textAlign(CENTER, TOP);
+    fill(255); // Texte en blanc
+    text(PARAMS.message, width/2, 0);
+    pop();
+
+    // Draw logo shapes
+    if (PARAMS.logo.visible && typeof globalThis.drawLogoShapes === 'function') {
+        push();
+        translate(PARAMS.logo.posX, PARAMS.logo.posY);
+        rotate(PARAMS.logo.rotation);
+        
+        // Create color with opacity
+        const c = color(PARAMS.logo.color);
+        c.setAlpha(PARAMS.logo.opacity * 255);
+        
+        // Pass the current p5 instance and set showLetters to false
+        globalThis.drawLogoShapes(window._p5Instance || window, 0, 0, PARAMS.logo.scale, c, false);
+        pop();
     }
 
     function colorWithOpacity(hex, alpha) {
