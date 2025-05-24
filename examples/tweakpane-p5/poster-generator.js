@@ -14,11 +14,20 @@ const FORMATS = {
     Carré: { x: 600, y: 600 },
 };
 
+const AVAILABLE_IMAGES = {
+    'Theatre': '/img/theatre.png',
+    'Theatre 2': '/img/Theatre2.png',
+    'Danse Contemporaine': '/img/Danse_comptemporaine.png',
+    'Danse Contemporaine (Neg)': '/img/Danse_comptemporaine_NEG.png',
+    'Danse Contemporaine 2': '/img/Danse_comptemporaine copie.png'
+};
+
 const PARAMS = {
     format: 'Poster', // Valeur par défaut
     xPosition: 0,
     bgColor: '#3C3C17',
     dimensions: { ...FORMATS['Poster'] },
+    message: 'Titre',
 
     imageLayer: {
         visible: true,
@@ -28,6 +37,7 @@ const PARAMS = {
         posX: 0,
         posY: 0,
         scale: 1,
+        selectedImage: 'Theatre',
 
         cropSide: 'top',
         cropAmount: 0,
@@ -73,6 +83,9 @@ pane.addBinding(PARAMS, 'xPosition', {
     max: 100
 })
 
+pane.addBinding(PARAMS, 'message', {
+})
+
 pane.addBinding(PARAMS, 'dimensions', {
     picker: 'inline',
     x: { min: 1, step: 1 },
@@ -81,6 +94,7 @@ pane.addBinding(PARAMS, 'dimensions', {
     const { x, y } = event.value
     resizeCanvas(x, y)
 });
+
 const f1 = pane.addFolder({ title: 'Shapes' });
 f1.addBinding(PARAMS.imageLayer, 'visible', { label: 'Visible' });
 f1.addBinding(PARAMS.imageLayer, 'posX', { min: 0, max: 1000 });
@@ -92,9 +106,24 @@ f2.addBinding(PARAMS.imageLayer, 'opacity', { min: 0, max: 1, step: 0.01 });
 f2.addBinding(PARAMS.imageLayer, 'posX', { min: -1000, max: 1000 });
 f2.addBinding(PARAMS.imageLayer, 'posY', { min: -1000, max: 1000 });
 f2.addBinding(PARAMS.imageLayer, 'scale', { min: 0.1, max: 5, step: 0.01 });
+
+// Add image selector
+f2.addBinding(PARAMS.imageLayer, 'selectedImage', {
+    options: Object.keys(AVAILABLE_IMAGES).reduce((acc, key) => {
+        acc[key] = key;
+        return acc;
+    }, {})
+}).on('change', (event) => {
+    const imagePath = AVAILABLE_IMAGES[event.value];
+    loadImage(imagePath, (img) => {
+        PARAMS.imageLayer.image = img;
+    });
+});
+
 f2.addButton({ title: 'Charger une image' }).on('click', () => {
     document.getElementById('image-loader').click()
 });
+
 f2.addBinding(PARAMS.imageLayer, 'cropSide', {
     options: {
         Haut: 'top',
@@ -118,7 +147,6 @@ f2.addBinding(PARAMS.imageLayer, 'cropAmount', {
 const f0 = pane.addFolder({ title: 'Background' });
 f0.addBinding(PARAMS, 'bgColor');
 
-
 pane.addButton({
     title: 'Save image',
 }).on('click', () => {
@@ -128,7 +156,11 @@ pane.addButton({
 let svg;
 
 globalThis.preload = function () {
-    svg = loadImage('/vite.svg')
+    svg = loadImage('/vite.svg');
+    // Load the default image
+    loadImage(AVAILABLE_IMAGES[PARAMS.imageLayer.selectedImage], (img) => {
+        PARAMS.imageLayer.image = img;
+    });
 }
 
 globalThis.setup = function () {
@@ -168,7 +200,6 @@ globalThis.draw = function () {
 
         pop();
     }
-
 
     if (PARAMS.layer2.visible) {
         push()

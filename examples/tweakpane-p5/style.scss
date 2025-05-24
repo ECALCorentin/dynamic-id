@@ -1,5 +1,10 @@
 // SASS
 
+@font-face {
+  font-family: 'States Medium';
+  src: url('/font/StatesWeb-RoundedMedium.otf') format('opentype');
+}
+
 * {
   box-sizing: border-box;
 }
@@ -23,8 +28,6 @@ body {
   justify-content: center;
 
   .p5Canvas {
-    // width: 100% !important;
-    // height: 100% !important;
     object-fit: scale-down;
     box-shadow: 0 1em 10em 0 rgba(0, 0, 0, 0.2);
   }
@@ -32,14 +35,34 @@ body {
 
 #logo {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 1em;
+  left: 1em;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  background: white;
+  padding: 1em;
+  border-radius: 4px;
+  box-shadow: 0 0.5em 2em 0 rgba(0, 0, 0, 0.1);
+
+  .p5Canvas {
+    width: 400px;
+    height: 200px;
+    margin-bottom: 1em;
+  }
+}
+
+#logo-controls {
+  width: 400px;
+}
+
+.logoCanvas {
+  width: 200px;
+  height: 200px;
 }
 
 canvas {
   display: block;
   flex-shrink: 0;
-  width: 400px;
-  height: 400px;
 }
