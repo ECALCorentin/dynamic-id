@@ -53,6 +53,13 @@ globalThis.initLogoControls = function() {
                 min: 0,
                 max: 360
             });
+            letterFolder.addBinding(globalThis.logoParams.letters[letter], 'shape', {
+                options: {
+                    Square: 'square',
+                    Hexagon: 'hexagon',
+                    Circle: 'circle'
+                }
+            });
         });
     } catch (error) {
         console.error('Error initializing controls:', error);
