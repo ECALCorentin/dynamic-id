@@ -23,11 +23,18 @@ const AVAILABLE_IMAGES = {
 };
 
 const PARAMS = {
-    format: 'Poster', // Valeur par défaut
+    eventType: 'Exhibition',
+    format: 'Poster',
     xPosition: 0,
     bgColor: '#3C3C17',
     dimensions: { ...FORMATS['Poster'] },
     message: 'Swiss Dance Day Retrospective',
+
+    globalMask: {
+        scale: 1,
+        posX: 0,
+        posY: 0
+    },
 
     imageLayer: {
         visible: true,
@@ -38,10 +45,8 @@ const PARAMS = {
         posY: 0,
         scale: 1,
         selectedImage: 'Theatre',
-
         cropSide: 'top',
         cropAmount: 0,
-
         crop: {
             top: 0,
             bottom: 0,
@@ -50,12 +55,19 @@ const PARAMS = {
         },
     },
 
-    layer2: {
+    overlayLayer: {
         visible: true,
-        color: '#00FF00',
-        opacity: 0.5,
-        posX: 200,
-        posY: 200,
+        color: '#808080',
+        opacity: 1,
+        scale: 1,
+        posX: 0,
+        posY: 0,
+        shapes: [
+            { type: 'square', x: 300, y: 300, size: 200, rotation: 0 },
+            { type: 'circle', x: 500, y: 300, size: 180, rotation: 0 },
+            { type: 'hexagon', x: 400, y: 200, size: 160, rotation: 0 },
+            { type: 'circle', x: 400, y: 400, size: 150, rotation: 0 }
+        ]
     },
 
     logo: {
@@ -68,6 +80,28 @@ const PARAMS = {
         opacity: 1
     },
 };
+
+// Create buffers once
+let maskBuffer;
+let finalBuffer;
+let overlayBuffer;
+
+pane.addBinding(PARAMS, 'eventType', {
+    label: 'Event Type',
+    options: {
+        'Exhibition': 'Exhibition',
+        'Conference': 'Conference',
+        'Installation': 'Installation',
+        'Performance': 'Performance',
+        'Workshop': 'Workshop',
+        'Concert': 'Concert',
+        'Screening': 'Screening',
+        'Dance Show': 'Dance Show',
+        'Theatre': 'Theatre'
+    }
+}).on('change', (ev) => {
+    PARAMS.message = `${ev.value}\nSwiss Dance Day Retrospective`;
+});
 
 pane.addBinding(PARAMS, 'format', {
     options: {
@@ -97,6 +131,27 @@ pane.addBinding(PARAMS, 'dimensions', {
 }).on('change', (event) => {
     const { x, y } = event.value
     resizeCanvas(x, y)
+});
+
+// Add global mask controls
+const globalMaskFolder = pane.addFolder({ title: 'Global Mask Controls' });
+globalMaskFolder.addBinding(PARAMS.globalMask, 'scale', {
+    min: 0.1,
+    max: 3,
+    step: 0.1,
+    label: 'Global Scale'
+});
+globalMaskFolder.addBinding(PARAMS.globalMask, 'posX', {
+    min: -500,
+    max: 500,
+    step: 1,
+    label: 'Position X'
+});
+globalMaskFolder.addBinding(PARAMS.globalMask, 'posY', {
+    min: -500,
+    max: 500,
+    step: 1,
+    label: 'Position Y'
 });
 
 const f1 = pane.addFolder({ title: 'Shapes' });
@@ -161,6 +216,83 @@ logoFolder.addBinding(PARAMS.logo, 'rotation', { min: 0, max: 360, label: 'Rotat
 logoFolder.addBinding(PARAMS.logo, 'color', { label: 'Color' });
 logoFolder.addBinding(PARAMS.logo, 'opacity', { min: 0, max: 1, step: 0.1, label: 'Opacity' });
 
+// Add overlay controls
+const overlayFolder = pane.addFolder({ title: 'Overlay Layer' });
+overlayFolder.addBinding(PARAMS.overlayLayer, 'visible');
+overlayFolder.addBinding(PARAMS.overlayLayer, 'color');
+overlayFolder.addBinding(PARAMS.overlayLayer, 'opacity', { min: 0, max: 1, step: 0.1 });
+overlayFolder.addBinding(PARAMS.overlayLayer, 'scale', { 
+    min: 0.1, 
+    max: 3, 
+    step: 0.1,
+    label: 'Global Scale'
+});
+overlayFolder.addBinding(PARAMS.overlayLayer, 'posX', {
+    min: -500,
+    max: 500,
+    step: 1,
+    label: 'Position X'
+});
+overlayFolder.addBinding(PARAMS.overlayLayer, 'posY', {
+    min: -500,
+    max: 500,
+    step: 1,
+    label: 'Position Y'
+});
+
+// Create shapes tab
+const shapesTab = overlayFolder.addTab({
+    pages: [
+        {title: 'Shapes'},
+        {title: 'Controls'}
+    ]
+});
+
+// Add shape controls in first tab
+PARAMS.overlayLayer.shapes.forEach((shape, index) => {
+    const shapeFolder = shapesTab.pages[0].addFolder({ 
+        title: `Shape ${index + 1}`,
+        expanded: index === 0 // Only expand first shape by default
+    });
+    
+    shapeFolder.addBinding(shape, 'type', {
+        options: {
+            Square: 'square',
+            Circle: 'circle',
+            Hexagon: 'hexagon'
+        }
+    });
+    shapeFolder.addBinding(shape, 'x', { min: 0, max: 1000 });
+    shapeFolder.addBinding(shape, 'y', { min: 0, max: 1000 });
+    shapeFolder.addBinding(shape, 'size', { min: 20, max: 500 });
+    shapeFolder.addBinding(shape, 'rotation', { min: 0, max: 360 });
+});
+
+// Add management buttons in second tab
+const controlsFolder = shapesTab.pages[1].addFolder({
+    title: 'Shape Management'
+});
+
+controlsFolder.addButton({ title: 'Add Shape' }).on('click', () => {
+    PARAMS.overlayLayer.shapes.push({
+        type: 'square',
+        x: width/2,
+        y: height/2,
+        size: 100,
+        rotation: 0
+    });
+    // Refresh pane to show new shape controls
+    pane.refresh();
+});
+
+controlsFolder.addButton({ title: 'Remove Last Shape' }).on('click', () => {
+    if (PARAMS.overlayLayer.shapes.length > 0) {
+        PARAMS.overlayLayer.shapes.pop();
+        // Refresh pane to update controls
+        pane.refresh();
+    }
+});
+
 pane.addButton({
     title: 'Save image',
 }).on('click', () => {
@@ -173,7 +305,7 @@ let statesFont;
 globalThis.preload = function () {
     svg = loadImage('/vite.svg');
     // Load font
-    statesFont = loadFont('public/font/StatesWeb-RoundedMedium.otf');
+    statesFont = loadFont('/font/StatesWeb-RoundedMedium.otf');
     // Load the default image
     loadImage(AVAILABLE_IMAGES[PARAMS.imageLayer.selectedImage], (img) => {
         PARAMS.imageLayer.image = img;
@@ -187,6 +319,16 @@ globalThis.setup = function () {
     pixelDensity(1)
     imageMode(CENTER)
     rectMode(CENTER)
+    
+    // Create buffers with initial canvas size
+    maskBuffer = createGraphics(x, y);
+    maskBuffer.pixelDensity(2);
+    
+    finalBuffer = createGraphics(x, y);
+    finalBuffer.pixelDensity(2);
+    
+    overlayBuffer = createGraphics(x, y);
+    overlayBuffer.pixelDensity(2);
     
     // Store p5 instance
     window._p5Instance = window._p5Instance || this;
@@ -205,6 +347,53 @@ globalThis.setup = function () {
     });
 }
 
+function getLogoBounds() {
+    const letters = globalThis.logoParams.letters;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+    Object.values(letters).forEach(({ x, y, scale }) => {
+        const size = 45 * scale;
+        const halfSize = size;
+        minX = Math.min(minX, x - halfSize);
+        maxX = Math.max(maxX, x + halfSize);
+        minY = Math.min(minY, y - halfSize);
+        maxY = Math.max(maxY, y + halfSize);
+    });
+
+    return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY
+    };
+}
+
+function drawShape(g, type, x, y, size, rotation) {
+    g.push();
+    g.translate(x, y);
+    g.rotate(rotation);
+    
+    switch(type) {
+        case 'square':
+            g.rect(0, 0, size, size);
+            break;
+        case 'circle':
+            g.circle(0, 0, size);
+            break;
+        case 'hexagon':
+            g.beginShape();
+            for (let i = 0; i < 6; i++) {
+                const angle = i * TWO_PI / 6;
+                const px = cos(angle) * size/2;
+                const py = sin(angle) * size/2;
+                g.vertex(px, py);
+            }
+            g.endShape(CLOSE);
+            break;
+    }
+    g.pop();
+}
+
 globalThis.draw = function () {
     background(PARAMS.bgColor)
 
@@ -221,32 +410,128 @@ globalThis.draw = function () {
         pop();
     }
 
-    if (PARAMS.layer2.visible) {
+    if (PARAMS.overlayLayer.visible) {
         push()
         pop()
     }
 
-    // Draw title
-    push();
-    textFont(statesFont);
-    textSize(41);
-    textAlign(CENTER, TOP);
-    fill(255); // Texte en blanc
-    text(PARAMS.message, width/2, 0);
-    pop();
-
     // Draw logo shapes
     if (PARAMS.logo.visible && typeof globalThis.drawLogoShapes === 'function') {
         push();
-        translate(PARAMS.logo.posX, PARAMS.logo.posY);
-        rotate(PARAMS.logo.rotation);
+    
+        // Get logo bounding box
+        const bounds = getLogoBounds();
+    
+        // Calculate scale factors to fit logo bounds into canvas
+        const scaleX = width / bounds.width;
+        const scaleY = height / bounds.height;
         
-        // Create color with opacity
-        const c = color(PARAMS.logo.color);
-        c.setAlpha(PARAMS.logo.opacity * 255);
+        const offsetX = (width - bounds.width * scaleX) / 2 - bounds.x * scaleX;
+        const offsetY = (height - bounds.height * scaleY) / 2 - bounds.y * scaleY;
         
-        // Pass the current p5 instance and set showLetters to false
-        globalThis.drawLogoShapes(window._p5Instance || window, 0, 0, PARAMS.logo.scale, c, false);
+        if (PARAMS.imageLayer.visible && PARAMS.imageLayer.image) {
+            // Clear buffers
+            maskBuffer.clear();
+            finalBuffer.clear();
+            
+            // Reset mask buffer with white background
+            maskBuffer.background(255);
+            
+            // Draw logo shapes in black on mask buffer with a small dilation
+            maskBuffer.push();
+            // Apply global transformations for mask
+            maskBuffer.translate(width/2 + PARAMS.globalMask.posX, height/2 + PARAMS.globalMask.posY);
+            maskBuffer.scale(PARAMS.globalMask.scale);
+            maskBuffer.translate(-width/2, -height/2);
+            
+            maskBuffer.translate(offsetX, offsetY);
+            maskBuffer.scale(scaleX, scaleY);
+            maskBuffer.fill(0);
+            maskBuffer.noStroke();
+            
+            // Draw shapes slightly larger to avoid white edges
+            maskBuffer.push();
+            maskBuffer.scale(1.01);
+            globalThis.drawLogoShapes(maskBuffer, 0, 0, 1, color(0), false);
+            maskBuffer.pop();
+            maskBuffer.pop();
+            
+            // Draw image on final buffer with same global transformations
+            finalBuffer.push();
+            finalBuffer.imageMode(CENTER);
+            // Apply global transformations for image
+            finalBuffer.translate(width/2 + PARAMS.globalMask.posX, height/2 + PARAMS.globalMask.posY);
+            finalBuffer.scale(PARAMS.globalMask.scale);
+            finalBuffer.translate(-width/2, -height/2);
+            
+            finalBuffer.translate(finalBuffer.width/2, finalBuffer.height/2);
+            finalBuffer.scale(PARAMS.imageLayer.scale);
+            finalBuffer.tint(255, PARAMS.imageLayer.opacity * 255);
+            finalBuffer.image(PARAMS.imageLayer.image, PARAMS.imageLayer.posX, PARAMS.imageLayer.posY, width, height);
+            finalBuffer.pop();
+            
+            // Apply mask with smoother threshold
+            finalBuffer.loadPixels();
+            maskBuffer.loadPixels();
+            
+            for (let i = 0; i < finalBuffer.pixels.length; i += 4) {
+                // Use a threshold to avoid aliasing artifacts
+                if (maskBuffer.pixels[i] > 240) { // More forgiving threshold
+                    finalBuffer.pixels[i + 3] = 0;
+                }
+            }
+            
+            finalBuffer.updatePixels();
+            
+            // Draw background color first
+            background(PARAMS.bgColor);
+            
+            // Draw the masked result centered in canvas
+            imageMode(CENTER);
+            image(finalBuffer, width/2, height/2, width, height);
+            imageMode(CORNER);
+            
+            // Draw overlay layer with cutout shapes
+            if (PARAMS.overlayLayer.visible) {
+                overlayBuffer.clear();
+                overlayBuffer.fill(PARAMS.overlayLayer.color);
+                overlayBuffer.noStroke();
+                
+                // Draw full rectangle first
+                overlayBuffer.rect(0, 0, width, height);
+                
+                // Cut out shapes by setting blend mode
+                overlayBuffer.erase();
+                overlayBuffer.push();
+                
+                // Apply global transformations
+                overlayBuffer.translate(width/2 + PARAMS.overlayLayer.posX, height/2 + PARAMS.overlayLayer.posY);
+                overlayBuffer.scale(PARAMS.overlayLayer.scale);
+                overlayBuffer.translate(-width/2, -height/2);
+                
+                PARAMS.overlayLayer.shapes.forEach(shape => {
+                    drawShape(overlayBuffer, shape.type, shape.x, shape.y, shape.size, shape.rotation);
+                });
+                overlayBuffer.pop();
+                overlayBuffer.noErase();
+                
+                // Draw overlay with transparency
+                push();
+                tint(255, PARAMS.overlayLayer.opacity * 255);
+                image(overlayBuffer, 0, 0);
+                pop();
+            }
+            
+            // Draw title
+            push();
+            textFont(statesFont);
+            textSize(41);
+            textAlign(CENTER, TOP);
+            fill(255); // White text
+            text(PARAMS.message, width/2, 0);
+            pop();
+        }
+        
         pop();
     }
 
