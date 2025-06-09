@@ -29,6 +29,9 @@ const PARAMS = {
     bgColor: '#3C3C17',
     dimensions: { ...FORMATS['Poster'] },
     message: 'Swiss Dance Day Retrospective',
+    message2: '(20)24 - (20)25',
+    date: '21.05 - 18.08',
+    year: '2025',
 
     globalMask: {
         scale: 1,
@@ -57,11 +60,11 @@ const PARAMS = {
 
     overlayLayer: {
         visible: true,
-        color: '#808080',
+        color: '#c8c8c8',
         opacity: 1,
-        scale: 1,
-        posX: 0,
-        posY: 0,
+        scale: 3,
+        posX: -140,
+        posY: 110,
         shapes: [
             { type: 'square', x: 300, y: 300, size: 200, rotation: 0 },
             { type: 'circle', x: 500, y: 300, size: 180, rotation: 0 },
@@ -93,9 +96,7 @@ pane.addBinding(PARAMS, 'eventType', {
         'Conference': 'Conference',
         'Performance': 'Performance',
     }
-}).on('change', (ev) => {
-    PARAMS.message = `${ev.value}\nSwiss Dance Day Retrospective`;
-});
+})
 
 pane.addBinding(PARAMS, 'format', {
     options: {
@@ -109,8 +110,17 @@ pane.addBinding(PARAMS, 'format', {
     PARAMS.dimensions = { ...newDim };
     resizeCanvas(newDim.x, newDim.y);
 });
+pane.addBinding(PARAMS, 'date', {
+})
 
 pane.addBinding(PARAMS, 'message', {
+})
+
+pane.addBinding(PARAMS, 'message2', {
+})
+
+
+pane.addBinding(PARAMS, 'date', {
 })
 
 pane.addBinding(PARAMS, 'dimensions', {
@@ -120,6 +130,99 @@ pane.addBinding(PARAMS, 'dimensions', {
 }).on('change', (event) => {
     const { x, y } = event.value
     resizeCanvas(x, y)
+});
+
+// Add overlay controls
+const overlayFolder = pane.addFolder({ title: 'Overlay Layer' });
+overlayFolder.addBinding(PARAMS.overlayLayer, 'visible');
+overlayFolder.addBinding(PARAMS.overlayLayer, 'color');
+overlayFolder.addBinding(PARAMS.overlayLayer, 'opacity', { min: 0, max: 1, step: 0.1 });
+overlayFolder.addBinding(PARAMS.overlayLayer, 'scale', { 
+    min: 0.1, 
+    max: 3, 
+    step: 0.1,
+    label: 'Global Scale'
+});
+overlayFolder.addBinding(PARAMS.overlayLayer, 'posX', {
+    min: -500,
+    max: 500,
+    step: 1,
+    label: 'Position X'
+});
+overlayFolder.addBinding(PARAMS.overlayLayer, 'posY', {
+    min: -500,
+    max: 500,
+    step: 1,
+    label: 'Position Y'
+});
+
+// Champ pour définir le nombre de formes
+if (PARAMS.overlayLayer.shapeCount === undefined) {
+    PARAMS.overlayLayer.shapeCount = PARAMS.overlayLayer.shapes.length;
+}
+overlayFolder.addBinding(PARAMS.overlayLayer, 'shapeCount', {
+    label: 'Nombre de formes',
+    min: 1,
+    max: 10,
+    step: 1
+}).on('change', (ev) => {
+    const n = ev.value;
+    const shapes = PARAMS.overlayLayer.shapes;
+    if (shapes.length < n) {
+        // Ajouter des formes par défaut
+        for (let i = shapes.length; i < n; i++) {
+            shapes.push({
+                type: 'square',
+                x: 300 + i * 30,
+                y: 300 + i * 30,
+                size: 150,
+                rotation: 0,
+            });
+        }
+    } else if (shapes.length > n) {
+        shapes.length = n;
+    }
+    createShapesTab();
+    pane.refresh();
+});
+
+// Fonction pour créer un tab par forme
+function createShapesTab() {
+    // Supprimer l'ancien tab s'il existe
+    if (overlayFolder._shapesTab) {
+        overlayFolder.remove(overlayFolder._shapesTab);
+    }
+    const shapesTab = overlayFolder.addTab({
+        pages: PARAMS.overlayLayer.shapes.map((shape, idx) => ({
+            title: `Forme ${idx + 1}`
+        }))
+    });
+    overlayFolder._shapesTab = shapesTab;
+
+    PARAMS.overlayLayer.shapes.forEach((shape, index) => {
+        const page = shapesTab.pages[index];
+        if (!shape.personality) shape.personality = 'Neutre';
+
+        page.addBinding(shape, 'type', {
+            options: {
+                Square: 'square',
+                Circle: 'circle',
+                Hexagon: 'hexagon'
+            }
+        });
+        page.addBinding(shape, 'x', { min: 0, max: 1000 });
+        page.addBinding(shape, 'y', { min: 0, max: 1000 });
+        page.addBinding(shape, 'size', { min: 20, max: 500 });
+        page.addBinding(shape, 'rotation', { min: 0, max: 360 });
+    });
+}
+createShapesTab();
+
+// Mettre à jour les tabs quand le nombre de formes change
+overlayFolder.on('change', (ev) => {
+    if (ev.presetKey === 'shapeCount') {
+        createShapesTab();
+    }
 });
 
 // Add global mask controls
@@ -187,95 +290,21 @@ f2.addBinding(PARAMS.imageLayer, 'cropAmount', {
     PARAMS.imageLayer.crop[side] = PARAMS.imageLayer.cropAmount;
 });
 
-const f0 = pane.addFolder({ title: 'Background' });
-f0.addBinding(PARAMS, 'bgColor');
-
 // Add logo controls
 const logoFolder = pane.addFolder({ title: 'Logo Shape' });
 logoFolder.addBinding(PARAMS.logo, 'visible', { label: 'Visible' });
-logoFolder.addBinding(PARAMS.logo, 'posX', { min: -500, max: 1500, label: 'Position X' });
-logoFolder.addBinding(PARAMS.logo, 'posY', { min: -500, max: 1500, label: 'Position Y' });
-logoFolder.addBinding(PARAMS.logo, 'scale', { min: 0.1, max: 10, step: 0.1, label: 'Scale' });
-logoFolder.addBinding(PARAMS.logo, 'rotation', { min: 0, max: 360, label: 'Rotation' });
-logoFolder.addBinding(PARAMS.logo, 'color', { label: 'Color' });
-logoFolder.addBinding(PARAMS.logo, 'opacity', { min: 0, max: 1, step: 0.1, label: 'Opacity' });
+//logoFolder.addBinding(PARAMS.logo, 'posX', { min: -500, max: 1500, label: 'Position X' });
+//logoFolder.addBinding(PARAMS.logo, 'posY', { min: -500, max: 1500, label: 'Position Y' });
+//logoFolder.addBinding(PARAMS.logo, 'scale', { min: 0.1, max: 10, step: 0.1, label: 'Scale' });
+//logoFolder.addBinding(PARAMS.logo, 'rotation', { min: 0, max: 360, label: 'Rotation' });
+//logoFolder.addBinding(PARAMS.logo, 'color', { label: 'Color' });
+//logoFolder.addBinding(PARAMS.logo, 'opacity', { min: 0, max: 1, step: 0.1, label: 'Opacity' })
 
-// Add overlay controls
-const overlayFolder = pane.addFolder({ title: 'Overlay Layer' });
-overlayFolder.addBinding(PARAMS.overlayLayer, 'visible');
-overlayFolder.addBinding(PARAMS.overlayLayer, 'color');
-overlayFolder.addBinding(PARAMS.overlayLayer, 'opacity', { min: 0, max: 1, step: 0.1 });
-overlayFolder.addBinding(PARAMS.overlayLayer, 'scale', { 
-    min: 0.1, 
-    max: 3, 
-    step: 0.1,
-    label: 'Global Scale'
-});
-overlayFolder.addBinding(PARAMS.overlayLayer, 'posX', {
-    min: -500,
-    max: 500,
-    step: 1,
-    label: 'Position X'
-});
-overlayFolder.addBinding(PARAMS.overlayLayer, 'posY', {
-    min: -500,
-    max: 500,
-    step: 1,
-    label: 'Position Y'
-});
+const f0 = pane.addFolder({ title: 'Background' });
+f0.addBinding(PARAMS, 'bgColor');
 
 // Create shapes tab
-const shapesTab = overlayFolder.addTab({
-    pages: [
-        {title: 'Shapes'},
-        {title: 'Controls'}
-    ]
-});
-
-// Add shape controls in first tab
-PARAMS.overlayLayer.shapes.forEach((shape, index) => {
-    const shapeFolder = shapesTab.pages[0].addFolder({ 
-        title: `Shape ${index + 1}`,
-        expanded: index === 0 // Only expand first shape by default
-    });
     
-    shapeFolder.addBinding(shape, 'type', {
-        options: {
-            Square: 'square',
-            Circle: 'circle',
-            Hexagon: 'hexagon'
-        }
-    });
-    shapeFolder.addBinding(shape, 'x', { min: 0, max: 1000 });
-    shapeFolder.addBinding(shape, 'y', { min: 0, max: 1000 });
-    shapeFolder.addBinding(shape, 'size', { min: 20, max: 500 });
-    shapeFolder.addBinding(shape, 'rotation', { min: 0, max: 360 });
-});
-
-// Add management buttons in second tab
-const controlsFolder = shapesTab.pages[1].addFolder({
-    title: 'Shape Management'
-});
-
-controlsFolder.addButton({ title: 'Add Shape' }).on('click', () => {
-    PARAMS.overlayLayer.shapes.push({
-        type: 'square',
-        x: width/2,
-        y: height/2,
-        size: 100,
-        rotation: 0
-    });
-    // Refresh pane to show new shape controls
-    pane.refresh();
-});
-
-controlsFolder.addButton({ title: 'Remove Last Shape' }).on('click', () => {
-    if (PARAMS.overlayLayer.shapes.length > 0) {
-        PARAMS.overlayLayer.shapes.pop();
-        // Refresh pane to update controls
-        pane.refresh();
-    }
-});
 
 pane.addButton({
     title: 'Save image',
@@ -488,10 +517,11 @@ globalThis.draw = function () {
                 overlayBuffer.erase();
                 overlayBuffer.push();
                 
-                // Apply global transformations
-                overlayBuffer.translate(width/2 + PARAMS.overlayLayer.posX, height/2 + PARAMS.overlayLayer.posY);
+                // Apply global transformations (centré)
+                overlayBuffer.translate(width / 2, height / 2);
                 overlayBuffer.scale(PARAMS.overlayLayer.scale);
-                overlayBuffer.translate(-width/2, -height/2);
+                overlayBuffer.translate(PARAMS.overlayLayer.posX, PARAMS.overlayLayer.posY);
+                overlayBuffer.translate(-width / 2, -height / 2);
                 
                 PARAMS.overlayLayer.shapes.forEach(shape => {
                     drawShape(overlayBuffer, shape.type, shape.x, shape.y, shape.size, shape.rotation);
@@ -513,6 +543,44 @@ globalThis.draw = function () {
             textAlign(CENTER, TOP);
             fill(255); // White text
             text(PARAMS.message, width/2, 0);
+            pop();
+
+              push();
+            textFont(statesFont);
+            textSize(41);
+            textAlign(LEFT, TOP);
+            fill(255); // White text
+            text(PARAMS.message2, 15,40 );
+            pop();
+
+            push();
+            textFont(statesFont);
+            textSize(15);
+            textAlign(CENTER, TOP);
+            fill(255);
+            // Convert PARAMS.message into a suite of words separated by '-' and uppercase
+            const messageSlug = PARAMS.message.split(/\s+/).join('-').toUpperCase();
+            text(('WWW.MASC.CH/' + messageSlug).toUpperCase(), width/2, 300);
+            pop();
+
+            push();
+            textFont(statesFont);
+            textSize(41);
+            textAlign(LEFT, TOP);
+            fill(255); // White text
+            // Add line break after the '-'
+            let dateText = PARAMS.date.replace(/ - /g, ' -\n');
+            // Reduce line height by setting leading
+            textLeading(33); // Default is textSize * 1.2, so use a smaller value
+            text(dateText, 15, 200);
+            pop();
+
+            push();
+            textFont(statesFont);
+            textSize(20);
+            textAlign(CENTER, BOTTOM);
+            fill(255); // White text
+            text('MASC - Musée des Arts Scéniques Contemporains', width/2, height - 5);
             pop();
         }
         
