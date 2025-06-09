@@ -9,6 +9,10 @@ globalThis.logoParams = {
     canvas: {
         color: '#000000'
     },
+    positions: {
+        x: 0, // Décalage horizontal global
+        y: 0  // Décalage vertical global
+    },
     letters: {
         M: { x: 80, y: 100, scale: 1, rotation: 0, shape: 'square' },
         A: { x: 155, y: 100, scale: 1, rotation: 0, shape: 'hexagon' },
@@ -49,6 +53,10 @@ globalThis.initLogoControls = function() {
             }
         });
 
+        // Ajoute les bindings pour les décalages
+        logoPane.addBinding(globalThis.logoParams.positions, 'x', { label: 'Décalage horizontal', min: -400, max: 400, step: 1 });
+        logoPane.addBinding(globalThis.logoParams.positions, 'y', { label: 'Décalage vertical', min: -200, max: 200, step: 1 });
+
         // Créer un tab par lettre
         const tabPages = Object.keys(globalThis.logoParams.letters).map(letter => {
             return {
@@ -71,7 +79,7 @@ globalThis.initLogoControls = function() {
         // Ajouter les bindings dans chaque tab
         Object.keys(globalThis.logoParams.letters).forEach((letter, idx) => {
             const settings = globalThis.logoParams.letters[letter];
-            if (!settings.personality) settings.personality = 'Neutre';
+            if (!settings.personality) settings.personality = 'Affirmé';
 
             const page = tab.pages[idx];
             page.addBinding(settings, 'x', { min: 0, max: 400, step: 10 });
@@ -88,11 +96,8 @@ globalThis.initLogoControls = function() {
             page.addBinding(settings, 'personality', {
                 label: 'Personnalité',
                 options: {
-                    Neutre: 'Neutre',
-                    Joyeuse: 'Joyeuse',
-                    Sérieuse: 'Sérieuse',
-                    Dynamique: 'Dynamique',
-                    Mystérieuse: 'Mystérieuse'
+                    Affirmé: 'Affirmé',
+                    Doux: 'Doux', // <-- corrige ici
                 }
             });
 
@@ -116,47 +121,92 @@ globalThis.initLogoControls = function() {
 };
 
 globalThis.logoSetup = function(p) {
-    const logoCanvas = p.createCanvas(400, 200);
+
+    const logoCanvas = p.createCanvas(500, 300);
     logoCanvas.parent('logo');
     p.angleMode(p.DEGREES);
-    
 
     globalThis.initLogoControls();
 }
 
-function drawHexagon(p, size) {
-    const adjustedSize = size * 1;
-    p.beginShape();
-    for (let i = 0; i < 6; i++) {
-        const angle = (i * 60 + 60) * (Math.PI / 180);
-        const x = adjustedSize * Math.cos(angle);
-        const y = adjustedSize * Math.sin(angle);
-        p.vertex(x, y);
+// Modifie les fonctions de dessin pour accepter un rayon d'arrondi
+function drawHexagon(p, size, radius = 0) {
+    if (radius > 0) {
+        // Hexagone arrondi (approximation en utilisant beginShape + quadraticVertex)
+        const n = 6;
+        const angleStep = (2 * Math.PI) / n;
+        p.beginShape();
+        for (let i = 0; i < n; i++) {
+            const angle = i * angleStep - Math.PI / 2;
+            const nextAngle = ((i + 1) % n) * angleStep - Math.PI / 2;
+            const x1 = Math.cos(angle) * (size - radius);
+            const y1 = Math.sin(angle) * (size - radius);
+            const x2 = Math.cos(nextAngle) * (size - radius);
+            const y2 = Math.sin(nextAngle) * (size - radius);
+            const cx = Math.cos(angle + angleStep / 2) * size;
+            const cy = Math.sin(angle + angleStep / 2) * size;
+            if (i === 0) {
+                p.vertex(x1, y1);
+            }
+            p.quadraticVertex(cx, cy, x2, y2);
+        }
+        p.endShape(p.CLOSE);
+    } else {
+        // Hexagone classique
+        const adjustedSize = size * 1;
+        p.beginShape();
+        for (let i = 0; i < 6; i++) {
+            const angle = (i * 60 + 60) * (Math.PI / 180);
+            const x = adjustedSize * Math.cos(angle);
+            const y = adjustedSize * Math.sin(angle);
+            p.vertex(x, y);
+        }
+        p.endShape(p.CLOSE);
     }
-    p.endShape(p.CLOSE);
 }
 
-function drawSquare(p, size) {
+function drawSquare(p, size, radius = 0) {
     p.rectMode(p.CENTER);
-    p.rect(0, 0, size * 1.70, size * 1.70); 
+    p.rect(0, 0, size * 1.70, size * 1.70, radius);
 }
 
 function drawCircle(p, size) {
-    p.circle(0, 0, size * 1.9); 
+    p.circle(0, 0, size * 1.9);
 }
 
-
+// Modifie drawLogoShapes pour passer le rayon d'arrondi si personnalité = Doux
 globalThis.drawLogoShapes = function(p, x, y, scale, color, showLetters = true) {
-    Object.entries(globalThis.logoParams.letters).forEach(([letter, settings]) => {
+    const offsetX = globalThis.logoParams.positions?.x || 0;
+    const offsetY = globalThis.logoParams.positions?.y || 0;
+    const direction = globalThis.logoParams.direction || 'horizontal';
+
+    // Pour la disposition verticale, on aligne les lettres en colonne
+    let letters = Object.entries(globalThis.logoParams.letters);
+    letters.forEach(([letter, settings], idx) => {
         p.push();
-        p.translate(x + settings.x * scale, y + settings.y * scale);
+
+        let tx = x + offsetX;
+        let ty = y + offsetY;
+
+        if (direction === 'vertical') {
+            // Espacement vertical automatique, ignore settings.x et settings.y
+            const spacing = 70;
+            tx += 200; // centrer horizontalement (ajuste selon ton canvas)
+            ty += 40 + idx * spacing;
+        } else {
+            // Disposition horizontale classique
+            tx += settings.x * scale;
+            ty += settings.y * scale;
+        }
+
+        p.translate(tx, ty);
         p.rotate(settings.rotation);
         p.scale(settings.scale * scale);
 
         // Couleur de fond différente si sélectionné
         let fillColor;
         if (globalThis.selectedLetter === letter) {
-            fillColor = p.color(0, 0, 0); // Jaune highlight
+            fillColor = p.color(0, 0, 0);
         } else {
             fillColor = color || globalThis.logoParams.canvas.color;
         }
@@ -164,20 +214,22 @@ globalThis.drawLogoShapes = function(p, x, y, scale, color, showLetters = true) 
         p.fill(fillColor);
 
         const size = 45;
+        // Rayon d'arrondi si personnalité "Doux"
+        const isDoux = settings.personality === 'Doux';
+        const radius = isDoux ? size * 0.5 : 0;
 
         switch(settings.shape) {
             case 'hexagon':
-                drawHexagon(p, size);
+                drawHexagon(p, size, radius);
                 break;
             case 'square':
-                drawSquare(p, size);
+                drawSquare(p, size, radius);
                 break;
             case 'circle':
                 drawCircle(p, size);
                 break;
         }
 
-        // Draw letter only if showLetters is true
         if (showLetters) {
             p.fill(255);
             p.noStroke();

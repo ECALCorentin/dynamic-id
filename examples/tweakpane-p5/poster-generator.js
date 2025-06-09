@@ -63,8 +63,11 @@ const PARAMS = {
         color: '#c8c8c8',
         opacity: 1,
         scale: 3,
+        scaleX: 1, // <--- Ajouté
+        scaleY: 1, // <--- Ajouté
         posX: -140,
         posY: 110,
+        rotation: 0, // <--- Ajouté ici
         shapes: [
             { type: 'square', x: 300, y: 300, size: 200, rotation: 0 },
             { type: 'circle', x: 500, y: 300, size: 180, rotation: 0 },
@@ -81,6 +84,22 @@ const PARAMS = {
         rotation: 0,
         color: '#000000',
         opacity: 1
+    },
+
+    textPositions: {
+        message: { x: 0, y: 0 },
+        message2: { x: 0, y: 0 },
+        date: { x: 0, y: 0 },
+        year: { x: 0, y: 0 }, // <-- Ajouté ici
+        url: { x: 0, y: 0 },
+        masc: { x: 0, y: 0 },
+        lieu: { x: 0, y: 0 }
+    },
+
+    sideBorders: {
+        enabled: true,
+        width: 0,   // Largeur des bords gauche/droit
+        height: 25,   // Hauteur des bords haut/bas
     },
 };
 
@@ -132,6 +151,22 @@ pane.addBinding(PARAMS, 'dimensions', {
     resizeCanvas(x, y)
 });
 
+const textPosFolder = pane.addFolder({ title: 'Position des textes' });
+textPosFolder.addBinding(PARAMS.textPositions.message, 'x', { label: 'Message X', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.message, 'y', { label: 'Message Y', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.message2, 'x', { label: 'Message2 X', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.message2, 'y', { label: 'Message2 Y', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.date, 'x', { label: 'Date X', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.date, 'y', { label: 'Date Y', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.year, 'x', { label: 'Year X', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.year, 'y', { label: 'Year Y', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.url, 'x', { label: 'URL X', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.url, 'y', { label: 'URL Y', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.masc, 'x', { label: 'MASC X', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.masc, 'y', { label: 'MASC Y', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.lieu, 'x', { label: 'Lieu X', min: -1000, max: 1000, step: 1 });
+textPosFolder.addBinding(PARAMS.textPositions.lieu, 'y', { label: 'Lieu Y', min: -1000, max: 1000, step: 1 });
+
 // Add overlay controls
 const overlayFolder = pane.addFolder({ title: 'Overlay Layer' });
 overlayFolder.addBinding(PARAMS.overlayLayer, 'visible');
@@ -154,6 +189,24 @@ overlayFolder.addBinding(PARAMS.overlayLayer, 'posY', {
     max: 500,
     step: 1,
     label: 'Position Y'
+});
+overlayFolder.addBinding(PARAMS.overlayLayer, 'rotation', {
+    min: 0,
+    max: 360,
+    step: 1,
+    label: 'Rotation'
+});
+overlayFolder.addBinding(PARAMS.overlayLayer, 'scaleX', {
+    min: 0.1,
+    max: 3,
+    step: 0.01,
+    label: 'Scale X'
+});
+overlayFolder.addBinding(PARAMS.overlayLayer, 'scaleY', {
+    min: 0.1,
+    max: 3,
+    step: 0.01,
+    label: 'Scale Y'
 });
 
 // Champ pour définir le nombre de formes
@@ -332,6 +385,8 @@ globalThis.setup = function () {
     pixelDensity(1)
     imageMode(CENTER)
     rectMode(CENTER)
+
+    randomizeOverlayShapes(PARAMS.overlayLayer.shapes, width, height);
     
     // Create buffers with initial canvas size
     maskBuffer = createGraphics(x, y);
@@ -519,7 +574,11 @@ globalThis.draw = function () {
                 
                 // Apply global transformations (centré)
                 overlayBuffer.translate(width / 2, height / 2);
-                overlayBuffer.scale(PARAMS.overlayLayer.scale);
+                overlayBuffer.rotate(radians(PARAMS.overlayLayer.rotation));
+                overlayBuffer.scale(
+                    PARAMS.overlayLayer.scale * PARAMS.overlayLayer.scaleX,
+                    PARAMS.overlayLayer.scale * PARAMS.overlayLayer.scaleY
+                );
                 overlayBuffer.translate(PARAMS.overlayLayer.posX, PARAMS.overlayLayer.posY);
                 overlayBuffer.translate(-width / 2, -height / 2);
                 
@@ -535,6 +594,25 @@ globalThis.draw = function () {
                 image(overlayBuffer, 0, 0);
                 pop();
             }
+
+            if (PARAMS.sideBorders.enabled && (PARAMS.sideBorders.width > 0 || PARAMS.sideBorders.height > 0)) {
+        noStroke();
+        fill(PARAMS.bgColor);
+        rectMode(CORNER);
+        // Bord gauche
+        if (PARAMS.sideBorders.width > 0) {
+            rect(0, 0, PARAMS.sideBorders.width, height);
+            // Bord droit
+            rect(width - PARAMS.sideBorders.width, 0, PARAMS.sideBorders.width, height);
+        }
+        // Bord haut
+        if (PARAMS.sideBorders.height > 0) {
+            rect(0, 0, width, PARAMS.sideBorders.height);
+            // Bord bas
+            rect(0, height - PARAMS.sideBorders.height, width, PARAMS.sideBorders.height);
+        }
+        rectMode(CENTER); // Remet le mode si besoin pour la suite
+    }
             
             // Draw title
             push();
@@ -542,7 +620,7 @@ globalThis.draw = function () {
             textSize(41);
             textAlign(CENTER, TOP);
             fill(255); // White text
-            text(PARAMS.message, width/2, 0);
+            text(PARAMS.message, width/2 + PARAMS.textPositions.message.x, 0 + PARAMS.textPositions.message.y);
             pop();
 
               push();
@@ -550,7 +628,7 @@ globalThis.draw = function () {
             textSize(41);
             textAlign(LEFT, TOP);
             fill(255); // White text
-            text(PARAMS.message2, 15,40 );
+            text(PARAMS.message2, 15 + PARAMS.textPositions.message2.x, 40 + PARAMS.textPositions.message2.y);
             pop();
 
             push();
@@ -560,7 +638,25 @@ globalThis.draw = function () {
             fill(255);
             // Convert PARAMS.message into a suite of words separated by '-' and uppercase
             const messageSlug = PARAMS.message.split(/\s+/).join('-').toUpperCase();
-            text(('WWW.MASC.CH/' + messageSlug).toUpperCase(), width/2, 300);
+            text(('WWW.MASC.CH/' + messageSlug).toUpperCase(), width/2 + PARAMS.textPositions.url.x, height - 50 + PARAMS.textPositions.url.y);
+            pop();
+
+            //push();
+            //textFont(statesFont);
+            //textSize(15);
+            //textAlign(CENTER, TOP);
+            //fill(255); // White text
+            //text((PARAMS.message + ' ' + PARAMS.message2).toUpperCase(), width/2 + PARAMS.textPositions.masc.x, height - 70 + PARAMS.textPositions.masc.y);
+            //pop();
+
+            push();
+            textFont(statesFont);
+            textSize(41);
+            textAlign(LEFT, TOP);
+            fill(255); // White text
+            let dateText = PARAMS.date.replace(/ - /g, ' -\n');
+            textLeading(33);
+            text(dateText, 15 + PARAMS.textPositions.date.x, 90 + PARAMS.textPositions.date.y);
             pop();
 
             push();
@@ -568,11 +664,7 @@ globalThis.draw = function () {
             textSize(41);
             textAlign(LEFT, TOP);
             fill(255); // White text
-            // Add line break after the '-'
-            let dateText = PARAMS.date.replace(/ - /g, ' -\n');
-            // Reduce line height by setting leading
-            textLeading(33); // Default is textSize * 1.2, so use a smaller value
-            text(dateText, 15, 200);
+            text(PARAMS.year, 15 + PARAMS.textPositions.year.x, 160 + PARAMS.textPositions.year.y);
             pop();
 
             push();
@@ -580,16 +672,130 @@ globalThis.draw = function () {
             textSize(20);
             textAlign(CENTER, BOTTOM);
             fill(255); // White text
-            text('MASC - Musée des Arts Scéniques Contemporains', width/2, height - 5);
+            text('MASC - Musée des Arts Scéniques Contemporains', width/2 + PARAMS.textPositions.masc.x, height - 5 + PARAMS.textPositions.masc.y);
+            pop();
+
+           push();
+            textFont(statesFont);
+            textSize(20);
+            textAlign(LEFT, TOP);
+            fill(255); // White text
+            // Separate text between "4" and "2000"
+            let lieuText = 'Rue des Moulins 37 2000 Neuchâtel'.replace(/(37)(\s+)(2000)/, '$1\n$3');
+            textLeading(20);
+            text(lieuText, 15 + PARAMS.textPositions.lieu.x, 250 + PARAMS.textPositions.lieu.y);
             pop();
         }
         
         pop();
     }
 
+
     function colorWithOpacity(hex, alpha) {
         const c = color(hex)
         c.setAlpha(alpha * 255)
         return c
+    }
+}
+
+function randomizeOverlayShapes(shapes, w, h) {
+    const types = ['square', 'circle', 'hexagon'];
+    const minOverlap = 0.75; // < 1 = chevauchement assuré
+    const maxTries = 200;
+
+    // Place la première forme au centre
+    let x = w / 2;
+    let y = h / 2;
+    let size = random(120, 220);
+    shapes[0].type = random(types);
+    shapes[0].x = x;
+    shapes[0].y = y;
+    shapes[0].size = size;
+    shapes[0].rotation = random(0, 360);
+
+    // Place les suivantes en chevauchant obligatoirement un voisin
+    for (let i = 1; i < shapes.length; i++) {
+        let placed = false;
+        let tries = 0;
+        while (!placed && tries < maxTries) {
+            tries++;
+            // Choisit un voisin déjà placé
+            const baseIdx = floor(random(i));
+            const base = shapes[baseIdx];
+            const baseSize = base.size;
+            const angle = random(TWO_PI);
+            size = random(100, 220);
+            // Distance pour FORCER le chevauchement avec le voisin
+            const dist = (baseSize + size) / 2 * random(minOverlap, 0.97);
+            x = base.x + cos(angle) * dist;
+            y = base.y + sin(angle) * dist;
+
+            // Crée temporairement la forme
+            const temp = {
+                type: random(types),
+                x, y, size,
+                rotation: random(0, 360)
+            };
+
+            // Vérifie qu'elle ne chevauche aucune autre (sauf le voisin)
+            let overlap = false;
+            for (let j = 0; j < i; j++) {
+                if (j === baseIdx) continue; // On autorise le chevauchement avec le voisin
+                const dx = shapes[j].x - temp.x;
+                const dy = shapes[j].y - temp.y;
+                const minDist = (shapes[j].size + temp.size) / 2 * 0.98;
+                if (distSq(dx, dy) < minDist * minDist) {
+                    overlap = true;
+                    break;
+                }
+            }
+            if (!overlap) {
+                shapes[i].type = temp.type;
+                shapes[i].x = temp.x;
+                shapes[i].y = temp.y;
+                shapes[i].size = temp.size;
+                shapes[i].rotation = temp.rotation;
+                placed = true;
+            }
+        }
+        // Si pas trouvé, place quand même (rare)
+        if (!placed) {
+            shapes[i].type = random(types);
+            shapes[i].x = random(w * 0.2, w * 0.8);
+            shapes[i].y = random(h * 0.2, h * 0.8);
+            shapes[i].size = random(100, 220);
+            shapes[i].rotation = random(0, 360);
+        }
+    }
+
+    // Vérifie qu'aucune forme n'est isolée (chaque forme doit chevaucher au moins un voisin)
+    for (let i = 0; i < shapes.length; i++) {
+        let hasNeighbor = false;
+        for (let j = 0; j < shapes.length; j++) {
+            if (i === j) continue;
+            const dx = shapes[j].x - shapes[i].x;
+            const dy = shapes[j].y - shapes[i].y;
+            const minDist = (shapes[j].size + shapes[i].size) / 2 * 0.98;
+            if (distSq(dx, dy) < minDist * minOverlap * minOverlap) {
+                hasNeighbor = true;
+                break;
+            }
+        }
+        // Si isolée, force le chevauchement avec une autre forme
+        if (!hasNeighbor && shapes.length > 1) {
+            // On déplace la forme vers la première
+            const target = (i === 0) ? 1 : 0;
+            const angle = random(TWO_PI);
+            const base = shapes[target];
+            const baseSize = base.size;
+            const mySize = shapes[i].size;
+            const dist = (baseSize + mySize) / 2 * random(minOverlap, 0.97);
+            shapes[i].x = base.x + cos(angle) * dist;
+            shapes[i].y = base.y + sin(angle) * dist;
+        }
+    }
+
+    function distSq(dx, dy) {
+        return dx * dx + dy * dy;
     }
 }
