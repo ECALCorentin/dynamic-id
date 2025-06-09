@@ -89,15 +89,9 @@ let overlayBuffer;
 pane.addBinding(PARAMS, 'eventType', {
     label: 'Event Type',
     options: {
-        'Exhibition': 'Exhibition',
+        'Exposition': 'Exposition',
         'Conference': 'Conference',
-        'Installation': 'Installation',
         'Performance': 'Performance',
-        'Workshop': 'Workshop',
-        'Concert': 'Concert',
-        'Screening': 'Screening',
-        'Dance Show': 'Dance Show',
-        'Theatre': 'Theatre'
     }
 }).on('change', (ev) => {
     PARAMS.message = `${ev.value}\nSwiss Dance Day Retrospective`;
@@ -115,11 +109,6 @@ pane.addBinding(PARAMS, 'format', {
     PARAMS.dimensions = { ...newDim };
     resizeCanvas(newDim.x, newDim.y);
 });
-
-pane.addBinding(PARAMS, 'xPosition', {
-    min: 0,
-    max: 100
-})
 
 pane.addBinding(PARAMS, 'message', {
 })
@@ -153,11 +142,6 @@ globalMaskFolder.addBinding(PARAMS.globalMask, 'posY', {
     step: 1,
     label: 'Position Y'
 });
-
-const f1 = pane.addFolder({ title: 'Shapes' });
-f1.addBinding(PARAMS.imageLayer, 'visible', { label: 'Visible' });
-f1.addBinding(PARAMS.imageLayer, 'posX', { min: 0, max: 1000 });
-f1.addBinding(PARAMS.imageLayer, 'posY', { min: 0, max: 1000 });
 
 const f2 = pane.addFolder({ title: 'Background image' });
 f2.addBinding(PARAMS.imageLayer, 'visible', { label: 'Visible' });
